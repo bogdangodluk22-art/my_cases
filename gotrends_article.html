@@ -1,0 +1,1678 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GoTrends — AI Platform для продюсерів | Богдан Годлюк</title>
+<meta name="description" content="Як я побудував повноцінну AI-платформу для аналізу каналів, конкурентів та генерації контент-стратегій. Кейс від Богдана Годлюка — AI Architect.">
+<meta property="og:title" content="GoTrends — Твій AI Штаб Зростання">
+<meta property="og:description" content="5 AI-інструментів в одному місці. Аналізуй. Плануй. Дій.">
+<meta property="og:image" content="https://srv1421181.hstgr.cloud/og-gotrends.jpg">
+<meta property="og:type" content="article">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;600;700&family=Manrope:wght@300;400;500;600;700;800&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+/* ════════════════════════════════════════
+   TOKENS
+════════════════════════════════════════ */
+:root {
+  --bg:       #09090b;
+  --bg2:      #111116;
+  --bg3:      #18181f;
+  --card:     #1a1a24;
+  --card2:    #1f1f2d;
+  --border:   rgba(255,255,255,0.07);
+  --border2:  rgba(255,255,255,0.04);
+  --accent:   #c8a96e;
+  --accent2:  #e8c97e;
+  --blue:     #4a9eff;
+  --green:    #22c55e;
+  --red:      #ef4444;
+  --purple:   #a855f7;
+  --text:     #e2e1dc;
+  --muted:    #6b6b7a;
+  --muted2:   #9999a8;
+  --mono:     'JetBrains Mono', monospace;
+  --serif:    'Playfair Display', serif;
+  --sans:     'Manrope', sans-serif;
+  --display:  'Bebas Neue', sans-serif;
+}
+
+/* ════════════════════════════════════════
+   RESET & BASE
+════════════════════════════════════════ */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior: smooth; font-size: 16px; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  overflow-x: hidden;
+  cursor: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 2px; }
+
+/* ── SELECTION ── */
+::selection { background: rgba(200,169,110,0.25); color: var(--accent2); }
+
+/* ════════════════════════════════════════
+   CUSTOM CURSOR
+════════════════════════════════════════ */
+#cursor-dot {
+  position: fixed;
+  width: 8px; height: 8px;
+  background: var(--accent);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%, -50%);
+  transition: width .2s, height .2s, background .2s;
+  mix-blend-mode: difference;
+}
+#cursor-ring {
+  position: fixed;
+  width: 36px; height: 36px;
+  border: 1px solid rgba(200,169,110,0.5);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9998;
+  transform: translate(-50%, -50%);
+  transition: width .25s, height .25s, opacity .25s;
+}
+body:has(a:hover) #cursor-dot  { width:14px; height:14px; }
+body:has(a:hover) #cursor-ring { width:52px; height:52px; opacity:.5; }
+
+/* ════════════════════════════════════════
+   ANIMATIONS
+════════════════════════════════════════ */
+@keyframes fadeUp    { from{opacity:0;transform:translateY(28px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fadeIn    { from{opacity:0} to{opacity:1} }
+@keyframes pulse     { 0%,100%{opacity:1} 50%{opacity:.2} }
+@keyframes scanline  { 0%{transform:translateY(-100%)} 100%{transform:translateY(110vh)} }
+@keyframes ticker    { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+@keyframes float     { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+@keyframes gradShift { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+@keyframes countUp   { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+@keyframes glow      { 0%,100%{box-shadow:0 0 20px rgba(200,169,110,.15)} 50%{box-shadow:0 0 40px rgba(200,169,110,.35)} }
+@keyframes lineGrow  { from{width:0} to{width:100%} }
+@keyframes pillDrop  { 0%{opacity:0;transform:translateY(-80px) rotate(-8deg)} 60%{transform:translateY(8px) rotate(1deg)} 100%{opacity:1;transform:translateY(0) rotate(0)} }
+@keyframes echoFade  { 0%{opacity:.4;transform:translate(-50%,-50%) scale(1)} 100%{opacity:0;transform:translate(-50%,-50%) scale(2)} }
+@keyframes scrollHint{ 0%,100%{opacity:.3;transform:translateX(-50%) scaleY(1)} 50%{opacity:1;transform:translateX(-50%) scaleY(1.15)} }
+@keyframes rotate360 { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+@keyframes arcGrow   { from{stroke-dashoffset:283} to{stroke-dashoffset:var(--target-offset)} }
+
+/* ── Scroll reveal ── */
+.reveal {
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity .7s ease, transform .7s ease;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.reveal-left  { opacity:0; transform:translateX(-32px); transition: opacity .7s ease, transform .7s ease; }
+.reveal-right { opacity:0; transform:translateX(32px);  transition: opacity .7s ease, transform .7s ease; }
+.reveal-left.visible, .reveal-right.visible { opacity:1; transform:translateX(0); }
+
+/* ════════════════════════════════════════
+   HERO
+════════════════════════════════════════ */
+#hero {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #f0ede8;
+}
+.hero-grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+  transition: transform 0.4s ease;
+}
+.photo-base {
+  position: absolute; inset: 0;
+  background-size: auto 110%;
+  background-position: center 20%;
+  background-repeat: no-repeat;
+}
+.photo-reveal {
+  position: absolute; inset: 0;
+  background-size: auto 110%;
+  background-position: center 20%;
+  background-repeat: no-repeat;
+  -webkit-mask-image: radial-gradient(circle 0px at 50% 50%, black 0%, transparent 100%);
+  mask-image: radial-gradient(circle 0px at 50% 50%, black 0%, transparent 100%);
+}
+.vignette {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.22) 100%);
+  pointer-events: none;
+}
+.hero-name {
+  position: absolute; top: 52px; left: 60px; z-index: 100;
+}
+.hero-name-line {
+  font-family: var(--serif);
+  font-size: clamp(30px, 4vw, 56px);
+  font-weight: 700;
+  line-height: 1.02;
+  color: #111;
+  letter-spacing: -0.01em;
+  display: block;
+  transition: color 0.3s ease;
+}
+.hero-name-line.inv { color: #fff; }
+
+.hero-nav {
+  position: absolute; top: 60px; right: 60px; z-index: 100;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 7px;
+}
+.hero-nav a {
+  font-family: var(--mono);
+  font-size: 10px; letter-spacing: .15em; color: #555;
+  text-decoration: none; text-transform: uppercase;
+  transition: color .25s;
+}
+.hero-nav a:hover { color: #111; }
+.hero-nav a.inv { color: #fff !important; }
+
+.hero-badge {
+  position: absolute; top: 50%; right: 60px;
+  transform: translateY(-50%); z-index: 100;
+  display: flex; align-items: center; gap: 8px;
+}
+.badge-dot { width:6px; height:6px; border-radius:50%; background:var(--green); animation:pulse 2.5s infinite; }
+.badge-text { font-family:var(--mono); font-size:10px; letter-spacing:.14em; color:#555; text-transform:uppercase; transition:color .3s; }
+.badge-text.inv { color:#fff; }
+
+.hero-tagline {
+  position: absolute; bottom: 52px; left: 60px; z-index: 100;
+}
+.hero-tagline span {
+  font-family: var(--mono); font-size:10px; letter-spacing:.2em; color:#888; text-transform:uppercase; transition:color .3s;
+}
+.hero-tagline span.inv { color:rgba(255,255,255,.6); }
+
+.hero-socials {
+  position: absolute; bottom: 44px; right: 60px; z-index:100;
+  display:flex; flex-direction:column; gap:13px; align-items:flex-end;
+}
+.social-link { display:flex; align-items:center; gap:10px; text-decoration:none; transition:opacity .3s; }
+.social-link:hover { opacity:.7; }
+.social-label { font-family:var(--mono); font-size:10px; letter-spacing:.12em; color:#555; text-transform:uppercase; transition:color .3s; }
+.social-icon  { width:18px; height:18px; fill:#333; transition:fill .3s; flex-shrink:0; }
+.social-link.inv .social-label { color:#fff; }
+.social-link.inv .social-icon  { fill:#fff; }
+
+.scroll-hint {
+  position: absolute; bottom: 52px; left:50%; transform:translateX(-50%); z-index:100;
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+}
+.scroll-line {
+  width:1px; height:44px;
+  background:linear-gradient(to bottom, transparent, #aaa);
+  animation: scrollHint 2s ease-in-out infinite;
+}
+.scroll-text { font-family:var(--mono); font-size:9px; letter-spacing:.18em; color:#aaa; text-transform:uppercase; margin-top:4px; }
+
+.echo {
+  position:fixed; border-radius:50%; pointer-events:none; z-index:9990;
+  background:rgba(255,255,255,0.1); transform:translate(-50%,-50%);
+  animation:echoFade .7s ease-out forwards;
+}
+
+/* Entry animations */
+.fade-in { opacity:0; animation:fadeUp .9s ease forwards; }
+.d1{animation-delay:.1s} .d2{animation-delay:.25s} .d3{animation-delay:.4s} .d4{animation-delay:.55s} .d5{animation-delay:.7s}
+
+/* ════════════════════════════════════════
+   TICKER
+════════════════════════════════════════ */
+.ticker-wrap {
+  overflow:hidden;
+  background:rgba(200,169,110,.05);
+  border-top:1px solid rgba(200,169,110,.12);
+  border-bottom:1px solid rgba(200,169,110,.12);
+  padding:11px 0;
+  white-space:nowrap;
+}
+.ticker-inner { display:inline-flex; animation:ticker 35s linear infinite; }
+.ticker-item { font-family:var(--mono); font-size:11px; color:var(--muted); padding:0 44px; letter-spacing:.06em; }
+.ticker-item span { color:var(--accent); margin-right:8px; }
+
+/* ════════════════════════════════════════
+   NAV STRIP (sticky, post-hero)
+════════════════════════════════════════ */
+#nav-strip {
+  position: sticky; top:0; z-index:200;
+  background: rgba(9,9,11,.92);
+  backdrop-filter: blur(24px);
+  border-bottom: 1px solid var(--border);
+  height: 52px;
+  display: flex; align-items: center;
+  overflow: hidden;
+}
+.nav-strip-inner {
+  display: flex; align-items: center; gap: 0;
+  white-space: nowrap;
+  animation: ticker 40s linear infinite;
+  padding-left: 40px;
+}
+.nav-strip-inner:hover { animation-play-state: paused; }
+.nav-item {
+  font-family: var(--mono);
+  font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted); text-decoration: none;
+  padding: 0 32px; height: 52px;
+  display: flex; align-items: center;
+  border-right: 1px solid var(--border);
+  transition: color .2s, background .2s;
+  flex-shrink: 0;
+}
+.nav-item:hover { color: var(--accent); background: rgba(200,169,110,.05); }
+.nav-item.active { color: var(--accent); }
+.nav-logo-strip {
+  font-family: var(--mono); font-size: 12px; font-weight: 700;
+  color: var(--accent); letter-spacing: .1em;
+  padding: 0 32px; border-right: 1px solid var(--border);
+  height: 52px; display: flex; align-items: center; flex-shrink: 0;
+}
+
+/* ════════════════════════════════════════
+   LAYOUT
+════════════════════════════════════════ */
+.section { padding: 100px 0; border-bottom: 1px solid var(--border2); }
+.container { max-width: 1140px; margin: 0 auto; padding: 0 48px; }
+.sec-label {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .15em;
+  color: var(--accent); text-transform: uppercase; margin-bottom: 12px;
+  display: flex; align-items: center; gap: 10px;
+}
+.sec-label::before {
+  content: ''; width: 28px; height: 1px; background: var(--accent);
+}
+.sec-title {
+  font-family: var(--serif);
+  font-size: clamp(28px, 4vw, 48px);
+  font-weight: 700; line-height: 1.1;
+  margin-bottom: 16px;
+}
+.sec-sub {
+  color: var(--muted2); font-size: 16px; line-height: 1.75;
+  max-width: 680px; margin-bottom: 60px;
+}
+
+/* ════════════════════════════════════════
+   STATS CARDS
+════════════════════════════════════════ */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 80px;
+}
+.stat-card {
+  background: var(--card);
+  padding: 36px 32px;
+  position: relative;
+  overflow: hidden;
+  transition: background .3s;
+}
+.stat-card::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 0%, rgba(200,169,110,.08) 0%, transparent 70%);
+  opacity: 0; transition: opacity .4s;
+}
+.stat-card:hover { background: var(--card2); }
+.stat-card:hover::after { opacity: 1; }
+.stat-number {
+  font-family: var(--display);
+  font-size: clamp(44px, 5vw, 72px);
+  line-height: 1;
+  color: var(--accent);
+  letter-spacing: .02em;
+  display: block;
+  margin-bottom: 6px;
+}
+.stat-label {
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: .14em; color: var(--muted); text-transform: uppercase;
+}
+.stat-sub { font-size: 13px; color: var(--muted2); margin-top: 8px; line-height: 1.5; }
+
+/* ════════════════════════════════════════
+   FLOOR CARDS (5 floors)
+════════════════════════════════════════ */
+.floors-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 80px;
+}
+.floor-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px 28px;
+  position: relative; overflow: hidden;
+  transition: transform .3s, border-color .3s, box-shadow .3s;
+  cursor: default;
+}
+.floor-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent);
+  box-shadow: 0 20px 60px rgba(0,0,0,.4), 0 0 0 1px rgba(200,169,110,.2);
+}
+.floor-card::before {
+  content: '';
+  position: absolute; top:0; left:0; right:0; height:2px;
+  background: var(--floor-color, var(--accent));
+  transform: scaleX(0); transform-origin: left;
+  transition: transform .4s ease;
+}
+.floor-card:hover::before { transform: scaleX(1); }
+.floor-num {
+  font-family: var(--display); font-size: 56px; color: rgba(255,255,255,.04);
+  line-height: 1; margin-bottom: 16px; letter-spacing: .05em;
+}
+.floor-icon { font-size: 28px; margin-bottom: 12px; display: block; }
+.floor-title {
+  font-family: var(--sans); font-size: 16px; font-weight: 700;
+  color: var(--text); margin-bottom: 8px;
+}
+.floor-desc { font-size: 13px; color: var(--muted2); line-height: 1.65; }
+.floor-tech {
+  margin-top: 20px; padding-top: 16px;
+  border-top: 1px solid var(--border);
+  font-family: var(--mono); font-size: 10px;
+  color: var(--muted); letter-spacing: .1em;
+}
+
+/* ════════════════════════════════════════
+   BEFORE/AFTER TABLE
+════════════════════════════════════════ */
+.compare-table {
+  width: 100%; border-collapse: collapse;
+  border-radius: 16px; overflow: hidden;
+  border: 1px solid var(--border);
+}
+.compare-table thead th {
+  padding: 18px 24px; text-align: left;
+  font-family: var(--mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+}
+.compare-table thead th:first-child { background: var(--card); color: var(--muted); }
+.compare-table thead th:nth-child(2) { background: rgba(239,68,68,.12); color: var(--red); }
+.compare-table thead th:nth-child(3) { background: rgba(34,197,94,.12); color: var(--green); }
+.compare-table tbody tr { border-top: 1px solid var(--border2); transition: background .2s; }
+.compare-table tbody tr:hover { background: rgba(255,255,255,.02); }
+.compare-table td { padding: 16px 24px; font-size: 14px; vertical-align: middle; }
+.compare-table td:first-child { color: var(--muted2); font-size: 13px; font-family: var(--mono); letter-spacing: .06em; }
+.compare-table td:nth-child(2) { color: #ff7979; }
+.compare-table td:nth-child(3) { color: #6ddb9e; }
+.compare-icon { margin-right: 6px; }
+
+/* ════════════════════════════════════════
+   WORKFLOW DIAGRAM
+════════════════════════════════════════ */
+.workflow-wrap {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 48px;
+  overflow-x: auto;
+  margin-bottom: 60px;
+}
+.workflow-row {
+  display: flex; align-items: center; gap: 0;
+  flex-wrap: nowrap; min-width: fit-content;
+}
+.wf-node {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 18px;
+  text-align: center;
+  min-width: 110px;
+  flex-shrink: 0;
+  transition: border-color .25s, box-shadow .25s;
+  position: relative;
+}
+.wf-node:hover { border-color: var(--accent); box-shadow: 0 0 20px rgba(200,169,110,.15); }
+.wf-node-icon { font-size: 20px; display: block; margin-bottom: 4px; }
+.wf-node-label { font-family: var(--mono); font-size: 9px; letter-spacing: .08em; color: var(--muted); text-transform: uppercase; }
+.wf-node-sub { font-size: 10px; color: var(--muted2); margin-top: 2px; }
+.wf-arrow {
+  color: var(--accent); font-size: 18px; padding: 0 8px;
+  flex-shrink: 0; opacity: .6;
+}
+.wf-group-label {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .1em;
+  color: var(--accent); text-transform: uppercase; margin-bottom: 12px;
+  padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+
+/* ════════════════════════════════════════
+   ARCHITECTURE RADIAL (SVG)
+════════════════════════════════════════ */
+.arch-wrap {
+  display: flex; align-items: center; gap: 60px;
+  flex-wrap: wrap;
+}
+.arch-svg-wrap { flex-shrink: 0; }
+.arch-list { flex: 1; min-width: 280px; }
+.arch-item {
+  display: flex; align-items: flex-start; gap: 16px;
+  padding: 16px 0; border-bottom: 1px solid var(--border2);
+}
+.arch-item:last-child { border-bottom: none; }
+.arch-item-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  flex-shrink: 0; margin-top: 6px;
+}
+.arch-item-name { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.arch-item-desc { font-size: 13px; color: var(--muted2); line-height: 1.6; }
+
+/* ════════════════════════════════════════
+   RESULT CALLOUTS
+════════════════════════════════════════ */
+.results-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+  margin-bottom: 60px;
+}
+.result-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px 24px;
+  position: relative; overflow: hidden;
+  animation: glow 4s ease-in-out infinite;
+  animation-play-state: paused;
+  transition: transform .3s;
+}
+.result-card:hover { transform: translateY(-3px); animation-play-state: running; }
+.result-card-accent {
+  position: absolute; top:0; left:0; right:0; height:3px;
+  background: linear-gradient(90deg, var(--c1, var(--accent)), var(--c2, var(--accent2)));
+}
+.result-icon { font-size: 28px; margin-bottom: 12px; display: block; }
+.result-value {
+  font-family: var(--display); font-size: 42px;
+  color: var(--accent); letter-spacing: .04em; line-height: 1;
+  margin-bottom: 4px;
+}
+.result-label { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+.result-desc { font-size: 12px; color: var(--muted2); line-height: 1.6; }
+
+/* ════════════════════════════════════════
+   COST TABLE
+════════════════════════════════════════ */
+.cost-table {
+  width: 100%; border-collapse: collapse;
+  border-radius: 16px; overflow: hidden;
+  border: 1px solid var(--border); margin-bottom: 32px;
+}
+.cost-table thead th {
+  padding: 16px 24px; text-align: left;
+  background: var(--card2);
+  font-family: var(--mono); font-size: 11px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--muted);
+}
+.cost-table tbody tr { border-top: 1px solid var(--border2); transition: background .2s; }
+.cost-table tbody tr:hover { background: rgba(255,255,255,.02); }
+.cost-table td { padding: 14px 24px; font-size: 14px; vertical-align: middle; }
+.cost-table td:nth-child(2) { font-family: var(--mono); color: var(--accent); }
+.cost-table tfoot td { padding: 16px 24px; background: rgba(200,169,110,.07); font-weight: 700; }
+.cost-table tfoot td:nth-child(2) { font-family: var(--display); font-size: 22px; color: var(--accent); }
+
+/* ════════════════════════════════════════
+   GLOSSARY ACCORDION
+════════════════════════════════════════ */
+.glossary-wrap { margin-top: 60px; }
+.glossary-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 24px; background: var(--card);
+  border: 1px solid var(--border); border-radius: 12px;
+  cursor: pointer; transition: background .2s;
+  margin-bottom: 2px;
+  user-select: none;
+}
+.glossary-header:hover { background: var(--card2); }
+.glossary-header-title { font-family: var(--mono); font-size: 12px; letter-spacing: .12em; color: var(--accent); text-transform: uppercase; }
+.glossary-arrow { font-size: 16px; color: var(--muted); transition: transform .3s; }
+.glossary-header.open .glossary-arrow { transform: rotate(180deg); }
+.glossary-body {
+  max-height: 0; overflow: hidden;
+  transition: max-height .5s ease;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  margin-bottom: 16px;
+}
+.glossary-body.open { max-height: 1200px; }
+.glossary-item { padding: 16px 24px; border-top: 1px solid var(--border2); display: flex; gap: 16px; }
+.glossary-term { font-family: var(--mono); font-size: 12px; color: var(--accent); min-width: 160px; flex-shrink: 0; padding-top: 2px; }
+.glossary-def { font-size: 14px; color: var(--muted2); line-height: 1.65; }
+
+/* ════════════════════════════════════════
+   OSIRIS SECTION
+════════════════════════════════════════ */
+#osiris-section {
+  background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(200,169,110,.05) 0%, transparent 70%);
+  padding: 120px 0; border-bottom: 1px solid var(--border2);
+  position: relative; overflow: hidden;
+}
+.osiris-inner {
+  display: flex; align-items: center; gap: 80px; flex-wrap: wrap;
+}
+.osiris-3d-wrap {
+  width: 340px; height: 400px; flex-shrink: 0;
+  position: relative; display: flex; align-items: center; justify-content: center;
+}
+.osiris-canvas-placeholder {
+  width: 280px; height: 280px;
+  border-radius: 50%;
+  border: 1px solid rgba(200,169,110,.2);
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+  animation: float 4s ease-in-out infinite;
+}
+.osiris-canvas-placeholder::before {
+  content: '';
+  position: absolute; inset: -20px;
+  border-radius: 50%;
+  border: 1px solid rgba(200,169,110,.08);
+  animation: rotate360 20s linear infinite;
+}
+.osiris-canvas-placeholder::after {
+  content: '';
+  position: absolute; inset: -40px;
+  border-radius: 50%;
+  border: 1px dashed rgba(200,169,110,.05);
+  animation: rotate360 35s linear infinite reverse;
+}
+.osiris-emoji { font-size: 100px; filter: drop-shadow(0 0 40px rgba(200,169,110,.4)); }
+.osiris-online {
+  position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+  font-family: var(--mono); font-size: 10px; letter-spacing: .2em;
+  color: var(--green); display: flex; align-items: center; gap: 6px;
+  white-space: nowrap;
+}
+.osiris-online-dot { width:6px; height:6px; border-radius:50%; background:var(--green); animation:pulse 2s infinite; }
+.osiris-text { flex: 1; min-width: 280px; }
+.osiris-quote {
+  font-family: var(--serif); font-size: clamp(20px, 2.5vw, 30px);
+  font-style: italic; line-height: 1.45;
+  color: var(--text); margin-bottom: 32px;
+  border-left: 2px solid var(--accent); padding-left: 24px;
+}
+
+/* ════════════════════════════════════════
+   STACK GRID
+════════════════════════════════════════ */
+.stack-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+}
+.stack-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 22px 20px;
+  transition: border-color .25s, transform .25s;
+}
+.stack-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.stack-icon { font-size: 24px; margin-bottom: 10px; }
+.stack-name { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.stack-role { font-size: 12px; color: var(--muted2); line-height: 1.5; }
+
+/* ════════════════════════════════════════
+   CTA SECTION
+════════════════════════════════════════ */
+#cta {
+  padding: 120px 0;
+  background: radial-gradient(ellipse 60% 80% at 50% 100%, rgba(200,169,110,.07) 0%, transparent 70%);
+  text-align: center;
+}
+.cta-title {
+  font-family: var(--serif); font-size: clamp(32px, 5vw, 64px);
+  font-weight: 700; line-height: 1.1;
+  margin-bottom: 20px;
+}
+.cta-title em { font-style: italic; color: var(--accent); }
+.cta-sub { font-size: 17px; color: var(--muted2); max-width: 560px; margin: 0 auto 48px; line-height: 1.7; }
+.cta-btn {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 16px 36px; border-radius: 100px;
+  font-family: var(--mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
+  text-decoration: none; font-weight: 600;
+  transition: transform .25s, box-shadow .25s;
+}
+.cta-btn-primary {
+  background: var(--accent); color: #09090b;
+}
+.cta-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(200,169,110,.35); }
+.cta-btn-secondary {
+  background: transparent; color: var(--text);
+  border: 1px solid var(--border);
+  margin-left: 12px;
+}
+.cta-btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ════════════════════════════════════════
+   FOOTER
+════════════════════════════════════════ */
+footer {
+  background: var(--bg); border-top: 1px solid var(--border);
+  padding: 48px;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 24px;
+}
+.footer-author { display: flex; align-items: center; gap: 16px; }
+.footer-photo {
+  width: 48px; height: 48px; border-radius: 50%;
+  object-fit: cover; border: 2px solid var(--accent);
+  flex-shrink: 0;
+}
+.footer-photo-placeholder {
+  width:48px; height:48px; border-radius:50%;
+  background: var(--card); border: 2px solid var(--accent);
+  display:flex; align-items:center; justify-content:center;
+  font-size:20px; flex-shrink:0;
+}
+.footer-name { font-size: 15px; font-weight: 700; color: var(--text); }
+.footer-title { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; color: var(--muted); text-transform: uppercase; margin-top: 2px; }
+.footer-socials { display: flex; gap: 16px; align-items: center; }
+.footer-social-link { color: var(--muted); text-decoration: none; transition: color .2s; font-size: 13px; font-family: var(--mono); letter-spacing: .06em; }
+.footer-social-link:hover { color: var(--accent); }
+.footer-year { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: .1em; }
+
+/* ════════════════════════════════════════
+   PROGRESS BARS
+════════════════════════════════════════ */
+.progress-wrap { margin-top: 48px; }
+.progress-item { margin-bottom: 20px; }
+.progress-header { display:flex; justify-content:space-between; margin-bottom:8px; }
+.progress-label { font-family:var(--mono); font-size:11px; letter-spacing:.1em; color:var(--muted2); text-transform:uppercase; }
+.progress-val { font-family:var(--mono); font-size:11px; color:var(--accent); }
+.progress-track { height:3px; background:var(--border); border-radius:2px; overflow:hidden; }
+.progress-fill {
+  height:100%; border-radius:2px;
+  background:linear-gradient(90deg, var(--accent), var(--accent2));
+  width:0; transition:width 1.2s ease;
+}
+
+/* ════════════════════════════════════════
+   TOC
+════════════════════════════════════════ */
+.toc-wrap {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 16px; padding: 36px 40px;
+  max-width: 760px; margin: 0 auto;
+}
+.toc-title { font-family:var(--mono); font-size:11px; letter-spacing:.15em; color:var(--accent); text-transform:uppercase; margin-bottom:24px; }
+.toc-list { list-style:none; }
+.toc-item { padding: 10px 0; border-bottom:1px solid var(--border2); display:flex; align-items:center; gap:16px; }
+.toc-item:last-child { border-bottom:none; }
+.toc-num { font-family:var(--mono); font-size:11px; color:var(--muted); min-width:24px; }
+.toc-link {
+  font-size:15px; color:var(--text); text-decoration:none;
+  transition:color .2s; flex:1;
+}
+.toc-link:hover { color:var(--accent); }
+.toc-arrow { color:var(--muted); font-size:12px; }
+
+/* ════════════════════════════════════════
+   SECTION: OPENING SCENE
+════════════════════════════════════════ */
+.scene-block {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 16px 16px 0;
+  padding: 32px 36px;
+  margin-bottom: 40px;
+  font-size: 17px; line-height: 1.8; color: var(--text);
+  font-style: italic;
+}
+
+/* Highlight callout */
+.callout {
+  background: rgba(200,169,110,.07);
+  border: 1px solid rgba(200,169,110,.18);
+  border-radius: 12px; padding: 24px 28px;
+  margin: 32px 0; font-size:15px; line-height:1.75; color:var(--muted2);
+}
+.callout strong { color:var(--accent); }
+
+/* ════════════════════════════════════════
+   PROSE
+════════════════════════════════════════ */
+.prose { max-width: 760px; }
+.prose p { font-size:16px; line-height:1.85; color:var(--muted2); margin-bottom:20px; }
+.prose p strong { color:var(--text); }
+.prose h3 { font-family:var(--serif); font-size:22px; color:var(--text); margin:40px 0 16px; }
+
+/* ════════════════════════════════════════
+   MOBILE
+════════════════════════════════════════ */
+@media(max-width:900px) {
+  .stats-grid   { grid-template-columns:repeat(2,1fr); }
+  .floors-grid  { grid-template-columns:1fr; }
+  .results-grid { grid-template-columns:1fr; }
+  .stack-grid   { grid-template-columns:repeat(2,1fr); }
+  .arch-wrap    { flex-direction:column; }
+  .osiris-inner { flex-direction:column; align-items:center; }
+  .osiris-3d-wrap { width:260px; height:300px; }
+  footer        { flex-direction:column; align-items:flex-start; }
+}
+@media(max-width:600px) {
+  .container    { padding:0 20px; }
+  .section      { padding:64px 0; }
+  .hero-name    { top:28px; left:24px; }
+  .hero-nav     { display:none; }
+  .hero-badge   { display:none; }
+  .hero-tagline { left:24px; bottom:32px; }
+  .hero-socials { right:24px; bottom:26px; }
+  body          { cursor:auto; }
+  #cursor-dot, #cursor-ring { display:none; }
+  .stats-grid   { grid-template-columns:1fr; }
+  .stack-grid   { grid-template-columns:1fr; }
+  .toc-wrap     { padding:24px; }
+  .workflow-wrap{ padding:24px; }
+}
+</style>
+
+</head>
+<body>
+<!-- BODY STARTS HERE - to be injected after </style></head><body> -->
+
+<!-- ═══ CURSORS ═══ -->
+<div id="cursor-dot"></div>
+<div id="cursor-ring"></div>
+
+<!-- ═══════════════════════════════════════
+     HERO
+═══════════════════════════════════════ -->
+<section id="hero">
+  <div class="hero-grid" id="heroGrid"></div>
+  <div class="photo-base"   id="photoBase"></div>
+  <div class="photo-reveal" id="photoReveal"></div>
+  <div class="vignette"></div>
+
+  <div class="hero-name fade-in d1" id="heroName">
+    <span class="hero-name-line" id="nl1">БОГДАН</span>
+    <span class="hero-name-line" id="nl2">ГОДЛЮК</span>
+  </div>
+
+  <nav class="hero-nav fade-in d2" id="heroNav">
+    <a href="#toc"     id="hn1">Зміст</a>
+    <a href="#problem" id="hn2">Проблема</a>
+    <a href="#product" id="hn3">Продукт</a>
+    <a href="#results" id="hn4">Результати</a>
+  </nav>
+
+  <div class="hero-badge fade-in d3">
+    <div class="badge-dot"></div>
+    <span class="badge-text" id="bt">AI ARCHITECT · ONLINE</span>
+  </div>
+
+  <div class="hero-tagline fade-in d4">
+    <span id="tl">INNOVATOR · AI ARCHITECT · FOUNDER</span>
+  </div>
+
+  <div class="hero-socials fade-in d5" id="heroSocials">
+    <a href="https://t.me/bohdanhodliuk" class="social-link" id="sl1" target="_blank">
+      <span class="social-label">Telegram</span>
+      <svg class="social-icon" viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-1.97 9.289c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.932z"/></svg>
+    </a>
+    <a href="https://youtube.com/@bohdanhodliuk" class="social-link" id="sl2" target="_blank">
+      <span class="social-label">YouTube</span>
+      <svg class="social-icon" viewBox="0 0 24 24"><path d="M23.495 6.205a3.007 3.007 0 0 0-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 0 0 .527 6.205a31.247 31.247 0 0 0-.522 5.805 31.247 31.247 0 0 0 .522 5.783 3.007 3.007 0 0 0 2.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 0 0 2.088-2.088 31.247 31.247 0 0 0 .5-5.783 31.247 31.247 0 0 0-.5-5.805zM9.609 15.601V8.408l6.264 3.602z"/></svg>
+    </a>
+    <a href="https://instagram.com/bohdanhodliuk" class="social-link" id="sl3" target="_blank">
+      <span class="social-label">Instagram</span>
+      <svg class="social-icon" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>
+    </a>
+  </div>
+
+  <div class="scroll-hint fade-in d5">
+    <div class="scroll-line"></div>
+    <span class="scroll-text">scroll</span>
+  </div>
+</section>
+
+<!-- ═══ TICKER ═══ -->
+<div class="ticker-wrap">
+  <div class="ticker-inner">
+    <span class="ticker-item"><span>◆</span>GoTrends Platform</span>
+    <span class="ticker-item"><span>◆</span>5 AI Floors</span>
+    <span class="ticker-item"><span>◆</span>Apify · Tavily · GPT-4o</span>
+    <span class="ticker-item"><span>◆</span>n8n Self-hosted</span>
+    <span class="ticker-item"><span>◆</span>Supabase + pgvector</span>
+    <span class="ticker-item"><span>◆</span>Osiris AI Robot</span>
+    <span class="ticker-item"><span>◆</span>Telegram WebApp</span>
+    <span class="ticker-item"><span>◆</span>Богдан Годлюк · AI Architect</span>
+    <span class="ticker-item"><span>◆</span>GoTrends Platform</span>
+    <span class="ticker-item"><span>◆</span>5 AI Floors</span>
+    <span class="ticker-item"><span>◆</span>Apify · Tavily · GPT-4o</span>
+    <span class="ticker-item"><span>◆</span>n8n Self-hosted</span>
+    <span class="ticker-item"><span>◆</span>Supabase + pgvector</span>
+    <span class="ticker-item"><span>◆</span>Osiris AI Robot</span>
+    <span class="ticker-item"><span>◆</span>Telegram WebApp</span>
+    <span class="ticker-item"><span>◆</span>Богдан Годлюк · AI Architect</span>
+  </div>
+</div>
+
+<!-- ═══ STICKY NAV ═══ -->
+<div id="nav-strip">
+  <div class="nav-strip-inner" id="navStrip">
+    <span class="nav-logo-strip">GOTRENDS</span>
+    <a href="#toc"       class="nav-item">Зміст</a>
+    <a href="#problem"   class="nav-item">Проблема</a>
+    <a href="#product"   class="nav-item">Продукт</a>
+    <a href="#floors"    class="nav-item">5 Поверхів</a>
+    <a href="#workflow"  class="nav-item">Workflow</a>
+    <a href="#osiris-section" class="nav-item">Osiris</a>
+    <a href="#results"   class="nav-item">Результати</a>
+    <a href="#compare"   class="nav-item">До / Після</a>
+    <a href="#stack"     class="nav-item">Стек</a>
+    <a href="#cost"      class="nav-item">Вартість</a>
+    <a href="#cta"       class="nav-item">Контакт</a>
+    <!-- duplicate for seamless loop -->
+    <span class="nav-logo-strip">GOTRENDS</span>
+    <a href="#toc"       class="nav-item">Зміст</a>
+    <a href="#problem"   class="nav-item">Проблема</a>
+    <a href="#product"   class="nav-item">Продукт</a>
+    <a href="#floors"    class="nav-item">5 Поверхів</a>
+    <a href="#workflow"  class="nav-item">Workflow</a>
+    <a href="#osiris-section" class="nav-item">Osiris</a>
+    <a href="#results"   class="nav-item">Результати</a>
+    <a href="#compare"   class="nav-item">До / Після</a>
+    <a href="#stack"     class="nav-item">Стек</a>
+    <a href="#cost"      class="nav-item">Вартість</a>
+    <a href="#cta"       class="nav-item">Контакт</a>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     TOC
+═══════════════════════════════════════ -->
+<section class="section" id="toc" style="padding:80px 0;">
+  <div class="container">
+    <div class="sec-label reveal">Навігація</div>
+    <h2 class="sec-title reveal" style="margin-bottom:40px;">Зміст статті</h2>
+    <div class="toc-wrap reveal">
+      <div class="toc-title">Розділи</div>
+      <ul class="toc-list">
+        <li class="toc-item"><span class="toc-num">01</span><a href="#problem"  class="toc-link">Проблема — яку я вирішив</a><span class="toc-arrow">→</span></li>
+        <li class="toc-item"><span class="toc-num">02</span><a href="#product"  class="toc-link">GoTrends — що це за платформа</a><span class="toc-arrow">→</span></li>
+        <li class="toc-item"><span class="toc-num">03</span><a href="#floors"   class="toc-link">5 Поверхів — 5 AI-інструментів</a><span class="toc-arrow">→</span></li>
+        <li class="toc-item"><span class="toc-num">04</span><a href="#workflow" class="toc-link">Як це влаштовано всередині</a><span class="toc-arrow">→</span></li>
+        <li class="toc-item"><span class="toc-num">05</span><a href="#osiris-section" class="toc-link">Osiris — AI-робот бренду</a><span class="toc-arrow">→</span></li>
+        <li class="toc-item"><span class="toc-num">06</span><a href="#results"  class="toc-link">Результати та можливості</a><span class="toc-arrow">→</span></li>
+        <li class="toc-item"><span class="toc-num">07</span><a href="#compare"  class="toc-link">До і після — порівняльна таблиця</a><span class="toc-arrow">→</span></li>
+        <li class="toc-item"><span class="toc-num">08</span><a href="#stack"    class="toc-link">Технічний стек</a><span class="toc-arrow">→</span></li>
+        <li class="toc-item"><span class="toc-num">09</span><a href="#cost"     class="toc-link">Вартість системи</a><span class="toc-arrow">→</span></li>
+        <li class="toc-item"><span class="toc-num">10</span><a href="#glossary" class="toc-link">Словник термінів</a><span class="toc-arrow">→</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     01 PROBLEM
+═══════════════════════════════════════ -->
+<section class="section" id="problem">
+  <div class="container">
+    <div class="sec-label reveal">01 · Проблема</div>
+    <h2 class="sec-title reveal">Контент без системи —<br>це лотерея, а не стратегія</h2>
+    <p class="sec-sub reveal">Кожен продюсер, експерт і підприємець хоча б раз витратив тижні на контент — і не отримав нічого.</p>
+
+    <div class="scene-block reveal">
+      Понеділок, 23:40. Ти сидиш і намагаєшся придумати — про що знімати відео. Відкриваєш конкурентів, гортаєш TikTok, дивишся YouTube Trends. Через годину в тебе є 40 вкладок, нотатки у п'яти місцях і повне відчуття що ти не просунувся нікуди. Зрештою, знімаєш те що здалося нормальним. Відео набирає 300 переглядів. Знову.
+    </div>
+
+    <div class="prose reveal">
+      <p>Це не питання таланту. І навіть не питання ідей. Це питання <strong>системи</strong>.</p>
+      <p>Продюсери, які ростуть — не придумують тему з голови. Вони аналізують що працює у конкурентів, відстежують тренди до того як вони розгоряються, і будують контент-план на даних, а не на відчуттях.</p>
+      <p>Проблема в тому, що цей процес займав <strong>десятки годин на місяць</strong>. Або коштував команду аналітиків. Або просто не робився взагалі — бо не вистачало часу.</p>
+    </div>
+
+    <div class="callout reveal">
+      <strong>Середній продюсер витрачає 8–12 годин на місяць</strong> на ручний аналіз каналів, конкурентів і трендів. При цьому 70% цього часу дає неточну або застарілу картину. Я вирішив автоматизувати цей процес повністю.
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     02 PRODUCT
+═══════════════════════════════════════ -->
+<section class="section" id="product">
+  <div class="container">
+    <div class="sec-label reveal">02 · Продукт</div>
+    <h2 class="sec-title reveal">GoTrends — твій AI штаб зростання</h2>
+    <p class="sec-sub reveal">Не просто набір інструментів. Повноцінна платформа з метафорою хмарочоса, де кожен поверх — окремий AI-інструмент зі своєю атмосферою і логікою.</p>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card reveal">
+        <span class="stat-number" data-count="5">0</span>
+        <span class="stat-label">AI Інструментів</span>
+        <p class="stat-sub">Кожен поверх — повноцінний аналітичний модуль</p>
+      </div>
+      <div class="stat-card reveal" style="animation-delay:.1s">
+        <span class="stat-number" data-count="10">0</span>
+        <span class="stat-label">Workflow в n8n</span>
+        <p class="stat-sub">Self-hosted оркестрація без лімітів</p>
+      </div>
+      <div class="stat-card reveal" style="animation-delay:.2s">
+        <span class="stat-number" data-count="3">0</span>
+        <span class="stat-label">Канали доступу</span>
+        <p class="stat-sub">Сайт · Telegram WebApp · Telegram Bot</p>
+      </div>
+      <div class="stat-card reveal" style="animation-delay:.3s">
+        <span class="stat-number" data-count="1">0</span>
+        <span class="stat-label">AI Персонаж</span>
+        <p class="stat-sub">Osiris — 3D-робот з пам'яттю та RAG</p>
+      </div>
+    </div>
+
+    <div class="prose reveal">
+      <h3>Метафора хмарочоса</h3>
+      <p>Головна ідея UX — хмарочос з поверхами. Користувач піднімається ліфтом між поверхами: двері закриваються, анімація руху, двері відкриваються у новій кімнаті. Кожна кімната має свою атмосферу, колір і характер.</p>
+      <p>Це не просто естетика. Це логіка воронки: <strong>поверхи 1 і 2 збирають дані → поверхи 3 і 4 генерують ідеї → поверх 5 будує стратегію.</strong> Всі дані зберігаються в Supabase і передаються між інструментами.</p>
+    </div>
+
+    <div class="progress-wrap reveal">
+      <div class="progress-item">
+        <div class="progress-header"><span class="progress-label">Аналіз каналу (YouTube/IG/TikTok)</span><span class="progress-val">95%</span></div>
+        <div class="progress-track"><div class="progress-fill" data-width="95"></div></div>
+      </div>
+      <div class="progress-item">
+        <div class="progress-header"><span class="progress-label">Аналіз конкурентів (до 3 каналів)</span><span class="progress-val">90%</span></div>
+        <div class="progress-track"><div class="progress-fill" data-width="90"></div></div>
+      </div>
+      <div class="progress-item">
+        <div class="progress-header"><span class="progress-label">Генерація контент-плану (10-30 ідей)</span><span class="progress-val">98%</span></div>
+        <div class="progress-track"><div class="progress-fill" data-width="98"></div></div>
+      </div>
+      <div class="progress-item">
+        <div class="progress-header"><span class="progress-label">Аналіз трендів в ніші</span><span class="progress-val">85%</span></div>
+        <div class="progress-track"><div class="progress-fill" data-width="85"></div></div>
+      </div>
+      <div class="progress-item">
+        <div class="progress-header"><span class="progress-label">Стратегія росту 30/60/90 днів</span><span class="progress-val">92%</span></div>
+        <div class="progress-track"><div class="progress-fill" data-width="92"></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     03 FLOORS
+═══════════════════════════════════════ -->
+<section class="section" id="floors">
+  <div class="container">
+    <div class="sec-label reveal">03 · Архітектура</div>
+    <h2 class="sec-title reveal">5 Поверхів. 5 AI-інструментів.</h2>
+    <p class="sec-sub reveal">Кожен поверх — окрема кімната з унікальним дизайном, атмосферою і завданням. Разом вони утворюють повний цикл від аналізу до стратегії.</p>
+
+    <div class="floors-grid">
+      <div class="floor-card reveal" style="--floor-color:#4a9eff; grid-column:span 1;">
+        <div class="floor-num">01</div>
+        <span class="floor-icon">📊</span>
+        <div class="floor-title">Аналіз каналу</div>
+        <div class="floor-desc">Вводиш посилання на YouTube, Instagram або TikTok. Отримуєш повний розбір: що працює, що ні, де падає утримання, які відео рвуть.</div>
+        <div class="floor-tech">⚙ Apify Scraper</div>
+      </div>
+      <div class="floor-card reveal" style="--floor-color:#ef4444; animation-delay:.1s;">
+        <div class="floor-num">02</div>
+        <span class="floor-icon">🔍</span>
+        <div class="floor-title">Аналіз конкурентів</div>
+        <div class="floor-desc">Порівняння з топ-3 конкурентами в ніші. Що роблять, які формати б'ють, де є незайнята ніша яку ти можеш захопити.</div>
+        <div class="floor-tech">⚙ Apify + Tavily</div>
+      </div>
+      <div class="floor-card reveal" style="--floor-color:#f59e0b; animation-delay:.2s;">
+        <div class="floor-num">03</div>
+        <span class="floor-icon">💡</span>
+        <div class="floor-title">Контент-план</div>
+        <div class="floor-desc">10–30 ідей з гачками, форматами й хронометражем. GPT-4o враховує дані з поверхів 1 і 2 — ідеї не з повітря.</div>
+        <div class="floor-tech">⚙ GPT-4o + Supabase context</div>
+      </div>
+      <div class="floor-card reveal" style="--floor-color:#22c55e; animation-delay:.1s;">
+        <div class="floor-num">04</div>
+        <span class="floor-icon">📈</span>
+        <div class="floor-title">Аналіз трендів</div>
+        <div class="floor-desc">Вводиш тему або нішу. Система шукає що зараз на підйомі, що вже перегоріло. Відповідь: про що знімати ЗАРАЗ.</div>
+        <div class="floor-tech">⚙ Tavily + Google Trends</div>
+      </div>
+      <div class="floor-card reveal" style="--floor-color:#c8a96e; animation-delay:.2s; grid-column:span 2;">
+        <div class="floor-num">05</div>
+        <span class="floor-icon">🚀</span>
+        <div class="floor-title">Стратегія росту</div>
+        <div class="floor-desc">Фінальний поверх. Зводить все разом: аудиторія, конкуренти, тренди → персональна стратегія на 30, 60 або 90 днів. Конкретні фази, дії, KPI.</div>
+        <div class="floor-tech">⚙ GPT-4o з повним контекстом Supabase</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     04 WORKFLOW DIAGRAM
+═══════════════════════════════════════ -->
+<section class="section" id="workflow">
+  <div class="container">
+    <div class="sec-label reveal">04 · Технічна архітектура</div>
+    <h2 class="sec-title reveal">Як це влаштовано всередині</h2>
+    <p class="sec-sub reveal">10 n8n-workflow, self-hosted на Hostinger VPS. Кожен workflow — одна зона відповідальності. Разом — повноцінна AI-платформа.</p>
+
+    <!-- Floor 02 workflow diagram -->
+    <div class="workflow-wrap reveal">
+      <div class="wf-group-label">⚙ Floor 02 — Аналіз конкурентів (приклад workflow)</div>
+      <div class="workflow-row">
+        <div class="wf-node">
+          <span class="wf-node-icon">🌐</span>
+          <div class="wf-node-label">Webhook</div>
+          <div class="wf-node-sub">POST trigger</div>
+        </div>
+        <span class="wf-arrow">→</span>
+        <div class="wf-node">
+          <span class="wf-node-icon">✅</span>
+          <div class="wf-node-label">Validate</div>
+          <div class="wf-node-sub">Input check</div>
+        </div>
+        <span class="wf-arrow">→</span>
+        <div class="wf-node" style="border-color:rgba(200,169,110,.4);">
+          <span class="wf-node-icon">🔄</span>
+          <div class="wf-node-label">Loop</div>
+          <div class="wf-node-sub">splitInBatches</div>
+        </div>
+        <span class="wf-arrow">→</span>
+        <div class="wf-node">
+          <span class="wf-node-icon">🔀</span>
+          <div class="wf-node-label">Platform</div>
+          <div class="wf-node-sub">YT / IG / TT</div>
+        </div>
+        <span class="wf-arrow">→</span>
+        <div class="wf-node">
+          <span class="wf-node-icon">🕷</span>
+          <div class="wf-node-label">Apify Run</div>
+          <div class="wf-node-sub">Scraper actor</div>
+        </div>
+        <span class="wf-arrow">→</span>
+        <div class="wf-node">
+          <span class="wf-node-icon">⏳</span>
+          <div class="wf-node-label">Wait 30s</div>
+          <div class="wf-node-sub">Poll loop</div>
+        </div>
+        <span class="wf-arrow">→</span>
+        <div class="wf-node">
+          <span class="wf-node-icon">📋</span>
+          <div class="wf-node-label">Fetch Data</div>
+          <div class="wf-node-sub">Dataset items</div>
+        </div>
+        <span class="wf-arrow">→</span>
+        <div class="wf-node">
+          <span class="wf-node-icon">🔍</span>
+          <div class="wf-node-label">Tavily</div>
+          <div class="wf-node-sub">Web search</div>
+        </div>
+        <span class="wf-arrow">→</span>
+        <div class="wf-node" style="border-color:rgba(74,158,255,.4);">
+          <span class="wf-node-icon">🤖</span>
+          <div class="wf-node-label">GPT-4o</div>
+          <div class="wf-node-sub">Analysis</div>
+        </div>
+        <span class="wf-arrow">→</span>
+        <div class="wf-node" style="border-color:rgba(34,197,94,.4);">
+          <span class="wf-node-icon">📤</span>
+          <div class="wf-node-label">Respond</div>
+          <div class="wf-node-sub">JSON result</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Architecture radial -->
+    <div class="arch-wrap reveal">
+      <div class="arch-svg-wrap">
+        <svg width="280" height="280" viewBox="0 0 280 280">
+          <defs>
+            <radialGradient id="rg1" cx="50%" cy="50%" r="50%">
+              <stop offset="0%"   stop-color="rgba(200,169,110,.15)"/>
+              <stop offset="100%" stop-color="rgba(200,169,110,0)"/>
+            </radialGradient>
+          </defs>
+          <!-- bg circles -->
+          <circle cx="140" cy="140" r="130" fill="none" stroke="rgba(255,255,255,.04)" stroke-width="1"/>
+          <circle cx="140" cy="140" r="95"  fill="none" stroke="rgba(255,255,255,.06)" stroke-width="1"/>
+          <circle cx="140" cy="140" r="58"  fill="none" stroke="rgba(200,169,110,.12)" stroke-width="1"/>
+          <circle cx="140" cy="140" r="58"  fill="url(#rg1)"/>
+          <!-- center -->
+          <circle cx="140" cy="140" r="28"  fill="rgba(200,169,110,.15)" stroke="rgba(200,169,110,.4)" stroke-width="1.5"/>
+          <text x="140" y="135" text-anchor="middle" fill="#c8a96e" font-size="9" font-family="JetBrains Mono">GoTrends</text>
+          <text x="140" y="148" text-anchor="middle" fill="#c8a96e" font-size="8" font-family="JetBrains Mono">Core</text>
+          <!-- nodes -->
+          <circle cx="140" cy="40"  r="16" fill="#1a1a24" stroke="#4a9eff" stroke-width="1.5"/>
+          <text x="140" y="44" text-anchor="middle" fill="#4a9eff" font-size="9" font-family="JetBrains Mono">n8n</text>
+          <line x1="140" y1="56" x2="140" y2="112" stroke="rgba(74,158,255,.25)" stroke-width="1" stroke-dasharray="3,3"/>
+
+          <circle cx="234" cy="90"  r="16" fill="#1a1a24" stroke="#a855f7" stroke-width="1.5"/>
+          <text x="234" y="94" text-anchor="middle" fill="#a855f7" font-size="8" font-family="JetBrains Mono">GPT</text>
+          <line x1="220" y1="98" x2="190" y2="120" stroke="rgba(168,85,247,.25)" stroke-width="1" stroke-dasharray="3,3"/>
+
+          <circle cx="234" cy="190" r="16" fill="#1a1a24" stroke="#22c55e" stroke-width="1.5"/>
+          <text x="234" y="194" text-anchor="middle" fill="#22c55e" font-size="8" font-family="JetBrains Mono">SB</text>
+          <line x1="220" y1="182" x2="190" y2="162" stroke="rgba(34,197,94,.25)" stroke-width="1" stroke-dasharray="3,3"/>
+
+          <circle cx="140" cy="240" r="16" fill="#1a1a24" stroke="#f59e0b" stroke-width="1.5"/>
+          <text x="140" y="244" text-anchor="middle" fill="#f59e0b" font-size="8" font-family="JetBrains Mono">Apify</text>
+          <line x1="140" y1="224" x2="140" y2="168" stroke="rgba(245,158,11,.25)" stroke-width="1" stroke-dasharray="3,3"/>
+
+          <circle cx="46" cy="190"  r="16" fill="#1a1a24" stroke="#fb7185" stroke-width="1.5"/>
+          <text x="46" y="194" text-anchor="middle" fill="#fb7185" font-size="7" font-family="JetBrains Mono">Tavily</text>
+          <line x1="60" y1="182" x2="90" y2="162" stroke="rgba(251,113,133,.25)" stroke-width="1" stroke-dasharray="3,3"/>
+
+          <circle cx="46" cy="90"   r="16" fill="#1a1a24" stroke="#2dd4bf" stroke-width="1.5"/>
+          <text x="46" y="94" text-anchor="middle" fill="#2dd4bf" font-size="7" font-family="JetBrains Mono">TG Bot</text>
+          <line x1="60" y1="98" x2="90" y2="120" stroke="rgba(45,212,191,.25)" stroke-width="1" stroke-dasharray="3,3"/>
+        </svg>
+      </div>
+      <div class="arch-list">
+        <div class="arch-item">
+          <div class="arch-item-dot" style="background:#4a9eff;"></div>
+          <div><div class="arch-item-name">n8n (self-hosted)</div><div class="arch-item-desc">Серце системи. 10 workflow, кожен — окрема зона відповідальності. Без лімітів, без зайвих витрат.</div></div>
+        </div>
+        <div class="arch-item">
+          <div class="arch-item-dot" style="background:#a855f7;"></div>
+          <div><div class="arch-item-name">GPT-4o</div><div class="arch-item-desc">Аналіз, генерація ідей, контент-план, стратегія. Через n8n — жодних прямих API-ключів у фронті.</div></div>
+        </div>
+        <div class="arch-item">
+          <div class="arch-item-dot" style="background:#22c55e;"></div>
+          <div><div class="arch-item-name">Supabase + pgvector</div><div class="arch-item-desc">БД: users, user_state, dialog_history, documents. Векторний пошук для RAG Osiris.</div></div>
+        </div>
+        <div class="arch-item">
+          <div class="arch-item-dot" style="background:#f59e0b;"></div>
+          <div><div class="arch-item-name">Apify</div><div class="arch-item-desc">Scraping YouTube, Instagram, TikTok. Polling loop у n8n — чекаємо результату і йдемо далі.</div></div>
+        </div>
+        <div class="arch-item">
+          <div class="arch-item-dot" style="background:#fb7185;"></div>
+          <div><div class="arch-item-name">Tavily</div><div class="arch-item-desc">Веб-пошук для аналізу конкурентів і трендів. Advanced search, до 6 результатів на запит.</div></div>
+        </div>
+        <div class="arch-item">
+          <div class="arch-item-dot" style="background:#2dd4bf;"></div>
+          <div><div class="arch-item-name">Telegram Bot + WebApp</div><div class="arch-item-desc">Повноцінний бот з Osiris, меню, 5 кнопок інструментів. WebApp відкриває сайт у Telegram.</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     05 OSIRIS
+═══════════════════════════════════════ -->
+<section id="osiris-section">
+  <div class="container">
+    <div class="osiris-inner">
+      <div class="osiris-3d-wrap reveal-left">
+        <div class="osiris-canvas-placeholder">
+          <span class="osiris-emoji">🤖</span>
+        </div>
+        <div class="osiris-online">
+          <div class="osiris-online-dot"></div>
+          OSIRIS · ONLINE
+        </div>
+      </div>
+      <div class="osiris-text reveal-right">
+        <div class="sec-label" style="margin-bottom:16px;">05 · Osiris</div>
+        <h2 class="sec-title">Третій герой бренду.<br>Розумна машина.</h2>
+        <div class="osiris-quote">"Osiris — це не чат-бот. Це AI-персонаж, який знає де ти знаходишся в платформі, пам'ятає всю твою історію і відповідає як старший аналітик."</div>
+        <div class="prose">
+          <p>Babylon.js + три GLB-моделі: <strong>base.glb</strong> (обертання), <strong>breathing.glb</strong> (активний стан), <strong>touch.glb</strong> (друкує відповідь). Розміщено на GitHub Pages, завантажується з будь-якого пристрою.</p>
+          <p>GPT-4o через n8n webhook. RAG на pgvector — Osiris читає базу знань через семантичний пошук. Повна пам'ять діалогу в Supabase. Знає який інструмент зараз активний через поле <strong>tool</strong> в user_state.</p>
+        </div>
+        <div style="display:flex; gap:16px; flex-wrap:wrap; margin-top:28px;">
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 20px;text-align:center;min-width:100px;">
+            <div style="font-family:var(--display);font-size:28px;color:var(--accent);">3</div>
+            <div style="font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;">GLB моделі</div>
+          </div>
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 20px;text-align:center;min-width:100px;">
+            <div style="font-family:var(--display);font-size:28px;color:var(--accent);">7</div>
+            <div style="font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;">Tool states</div>
+          </div>
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 20px;text-align:center;min-width:100px;">
+            <div style="font-family:var(--display);font-size:28px;color:var(--accent);">∞</div>
+            <div style="font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;">Пам'ять</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     06 RESULTS
+═══════════════════════════════════════ -->
+<section class="section" id="results">
+  <div class="container">
+    <div class="sec-label reveal">06 · Результати</div>
+    <h2 class="sec-title reveal">Що дає GoTrends конкретно</h2>
+    <p class="sec-sub reveal">Не "покращує ефективність". А конкретні хвилини, рішення і гроші.</p>
+
+    <div class="results-grid">
+      <div class="result-card reveal" style="--c1:#4a9eff;--c2:#a855f7;">
+        <div class="result-card-accent"></div>
+        <span class="result-icon">⏱</span>
+        <div class="result-value">8год</div>
+        <div class="result-label">Економія щомісяця</div>
+        <div class="result-desc">Ручний аналіз каналів і конкурентів займає 8–12 год/міс. GoTrends робить це за 60 секунд.</div>
+      </div>
+      <div class="result-card reveal" style="--c1:#22c55e;--c2:#2dd4bf;animation-delay:.1s;">
+        <div class="result-card-accent"></div>
+        <span class="result-icon">🎯</span>
+        <div class="result-value">30+</div>
+        <div class="result-label">Ідей за хвилину</div>
+        <div class="result-desc">Контент-план на місяць — не з голови, а на основі даних каналу та конкурентів.</div>
+      </div>
+      <div class="result-card reveal" style="--c1:#f59e0b;--c2:#ef4444;animation-delay:.2s;">
+        <div class="result-card-accent"></div>
+        <span class="result-icon">📊</span>
+        <div class="result-value">3→1</div>
+        <div class="result-label">Інструменти замість десятків</div>
+        <div class="result-desc">Замість окремих підписок на аналітику — одна платформа з єдиним контекстом між поверхами.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     07 BEFORE/AFTER TABLE
+═══════════════════════════════════════ -->
+<section class="section" id="compare">
+  <div class="container">
+    <div class="sec-label reveal">07 · Порівняння</div>
+    <h2 class="sec-title reveal">До і після GoTrends</h2>
+    <p class="sec-sub reveal">Що конкретно змінюється для продюсера, експерта або підприємця.</p>
+
+    <div class="reveal" style="overflow:auto;">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>Параметр</th>
+            <th>❌ Без системи</th>
+            <th>✅ З GoTrends</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Аналіз свого каналу</td>
+            <td>Вручну, 2–3 год, приблизно</td>
+            <td>60 секунд, точні дані з Apify</td>
+          </tr>
+          <tr>
+            <td>Аналіз конкурентів</td>
+            <td>Ручний перегляд, нотатки</td>
+            <td>Автоматично, 3 канали паралельно</td>
+          </tr>
+          <tr>
+            <td>Пошук трендів</td>
+            <td>TikTok/YouTube серфінг, інтуїція</td>
+            <td>Tavily + GPT-4o, дані в реальному часі</td>
+          </tr>
+          <tr>
+            <td>Контент-план</td>
+            <td>Брейнсторм, 3–5 ідей за годину</td>
+            <td>10–30 ідей з гачками за 40 секунд</td>
+          </tr>
+          <tr>
+            <td>Стратегія росту</td>
+            <td>Консультант $200–500 або немає</td>
+            <td>AI-стратегія на 30/60/90 днів безкоштовно</td>
+          </tr>
+          <tr>
+            <td>Пам'ять між сесіями</td>
+            <td>Нотатки, не зв'язані між собою</td>
+            <td>Supabase — всі результати доступні між поверхами</td>
+          </tr>
+          <tr>
+            <td>AI-асистент</td>
+            <td>ChatGPT без контексту</td>
+            <td>Osiris — знає твій канал, конкурентів, тренди</td>
+          </tr>
+          <tr>
+            <td>Доступ</td>
+            <td>Desktop тільки</td>
+            <td>Сайт + Telegram WebApp + Telegram Bot</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     08 STACK
+═══════════════════════════════════════ -->
+<section class="section" id="stack">
+  <div class="container">
+    <div class="sec-label reveal">08 · Стек</div>
+    <h2 class="sec-title reveal">Технології платформи</h2>
+    <p class="sec-sub reveal">Для тих хто хоче знати деталі. Кожен інструмент — і чому саме він.</p>
+
+    <div class="stack-grid">
+      <div class="stack-card reveal">
+        <div class="stack-icon">⚙️</div>
+        <div class="stack-name">n8n (self-hosted)</div>
+        <div class="stack-role">Оркестрація. 10 workflow. VPS Hostinger — без лімітів на виконання</div>
+      </div>
+      <div class="stack-card reveal" style="animation-delay:.05s;">
+        <div class="stack-icon">🗄️</div>
+        <div class="stack-name">Supabase + pgvector</div>
+        <div class="stack-role">БД: users, user_state, dialog_history, documents. RAG для Osiris</div>
+      </div>
+      <div class="stack-card reveal" style="animation-delay:.1s;">
+        <div class="stack-icon">🤖</div>
+        <div class="stack-name">GPT-4o</div>
+        <div class="stack-role">Аналіз, генерація, стратегія. Через n8n HTTP node</div>
+      </div>
+      <div class="stack-card reveal" style="animation-delay:.15s;">
+        <div class="stack-icon">🕷️</div>
+        <div class="stack-name">Apify</div>
+        <div class="stack-role">YouTube, Instagram, TikTok scraper. Polling loop у n8n</div>
+      </div>
+      <div class="stack-card reveal" style="animation-delay:.2s;">
+        <div class="stack-icon">🔍</div>
+        <div class="stack-name">Tavily</div>
+        <div class="stack-role">Веб-пошук для конкурентів і трендів. Advanced search mode</div>
+      </div>
+      <div class="stack-card reveal" style="animation-delay:.25s;">
+        <div class="stack-icon">🎮</div>
+        <div class="stack-name">Babylon.js</div>
+        <div class="stack-role">3D рендеринг Osiris. GLB моделі на GitHub Pages</div>
+      </div>
+      <div class="stack-card reveal" style="animation-delay:.3s;">
+        <div class="stack-icon">📱</div>
+        <div class="stack-name">Telegram Bot API</div>
+        <div class="stack-role">Бот + WebApp + прозора сторінка Osiris</div>
+      </div>
+      <div class="stack-card reveal" style="animation-delay:.35s;">
+        <div class="stack-icon">☁️</div>
+        <div class="stack-name">Hostinger VPS</div>
+        <div class="stack-role">n8n, сайт GoTrends, Docker Compose. ~$6/міс</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     09 COST TABLE
+═══════════════════════════════════════ -->
+<section class="section" id="cost">
+  <div class="container">
+    <div class="sec-label reveal">09 · Вартість</div>
+    <h2 class="sec-title reveal">Скільки коштує система на місяць</h2>
+    <p class="sec-sub reveal">Тільки підписки — без вартості розробки. Прозорість будує довіру.</p>
+
+    <div class="reveal" style="overflow:auto;">
+      <table class="cost-table">
+        <thead>
+          <tr>
+            <th>Інструмент</th>
+            <th>$/міс</th>
+            <th>Роль у системі</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>n8n (self-hosted)</td><td>$0</td><td>Оркестрація — безкоштовно на власному VPS</td></tr>
+          <tr><td>Hostinger VPS</td><td>$6</td><td>Сервер для n8n + сайт GoTrends</td></tr>
+          <tr><td>Supabase</td><td>$0–25</td><td>БД + векторний пошук (Free tier або Pro)</td></tr>
+          <tr><td>OpenAI GPT-4o</td><td>~$15–30</td><td>Аналіз, генерація, Osiris діалоги</td></tr>
+          <tr><td>Apify</td><td>$49</td><td>YouTube / Instagram / TikTok scraping</td></tr>
+          <tr><td>Tavily</td><td>$0–19</td><td>Веб-пошук для трендів і конкурентів</td></tr>
+          <tr><td>GitHub Pages</td><td>$0</td><td>Хостинг GLB моделей Osiris</td></tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td><strong>РАЗОМ</strong></td>
+            <td><strong>~$70–130</strong></td>
+            <td style="color:var(--muted2);font-size:13px;">Розрахункові — залежить від обсягу запитів</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="callout reveal" style="margin-top:32px;">
+      <strong>$70–130/міс проти $500–2000/міс</strong> на команду аналітиків або окремі SaaS-підписки. При цьому GoTrends працює 24/7, не хворіє і не забуває контекст між сесіями.
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     10 GLOSSARY
+═══════════════════════════════════════ -->
+<section class="section" id="glossary">
+  <div class="container">
+    <div class="sec-label reveal">10 · Словник</div>
+    <h2 class="sec-title reveal">Словник термінів</h2>
+    <p class="sec-sub reveal">Якщо щось незрозуміло — розкрий і знайдеш пояснення.</p>
+
+    <div class="glossary-wrap reveal">
+      <div class="glossary-header" id="glossaryHeader">
+        <span class="glossary-header-title">📖 Розкрити словник термінів</span>
+        <span class="glossary-arrow">▼</span>
+      </div>
+      <div class="glossary-body" id="glossaryBody">
+        <div class="glossary-item"><span class="glossary-term">n8n</span><span class="glossary-def">Self-hosted платформа автоматизації. Як Zapier, але без лімітів і без щомісячних витрат за кожен запуск. Встановлюється на власний сервер.</span></div>
+        <div class="glossary-item"><span class="glossary-term">Webhook</span><span class="glossary-def">URL-адреса яка чекає на вхідний запит. Коли сайт відправляє дані — webhook отримує їх і запускає workflow.</span></div>
+        <div class="glossary-item"><span class="glossary-term">Apify</span><span class="glossary-def">Платформа для web-scraping. Запускаєш "actor" (скрипт) — він збирає дані з YouTube, Instagram, TikTok і повертає JSON.</span></div>
+        <div class="glossary-item"><span class="glossary-term">Tavily</span><span class="glossary-def">AI-пошуковий API. На відміну від Google, повертає чисті дані без реклами і SEO-сміття. Використовується для аналізу трендів.</span></div>
+        <div class="glossary-item"><span class="glossary-term">Supabase</span><span class="glossary-def">Open-source альтернатива Firebase. PostgreSQL база даних з REST API, auth, realtime. GoTrends використовує його як єдине джерело правди.</span></div>
+        <div class="glossary-item"><span class="glossary-term">pgvector</span><span class="glossary-def">Розширення PostgreSQL для зберігання векторів. Дозволяє робити семантичний пошук — знаходити схожий контент за змістом, а не за словами.</span></div>
+        <div class="glossary-item"><span class="glossary-term">RAG</span><span class="glossary-def">Retrieval-Augmented Generation. Техніка де AI перед відповіддю шукає релевантну інформацію з бази знань. Osiris використовує RAG для точних відповідей.</span></div>
+        <div class="glossary-item"><span class="glossary-term">GPT-4o</span><span class="glossary-def">Найновіша мультимодальна модель OpenAI. GoTrends використовує її для аналізу, генерації ідей, побудови стратегій і діалогів Osiris.</span></div>
+        <div class="glossary-item"><span class="glossary-term">Babylon.js</span><span class="glossary-def">JavaScript движок для 3D-графіки в браузері. Завантажує GLB-моделі і відображає Osiris з анімаціями прямо на сторінці.</span></div>
+        <div class="glossary-item"><span class="glossary-term">Telegram WebApp</span><span class="glossary-def">API Telegram, що дозволяє відкривати повноцінні веб-сторінки всередині месенджера. GoTrends відкривається у Telegram без виходу з додатку.</span></div>
+        <div class="glossary-item"><span class="glossary-term">splitInBatches</span><span class="glossary-def">Нода в n8n для обробки списку по одному елементу за раз. Floor 02 використовує її щоб аналізувати конкурентів послідовно.</span></div>
+        <div class="glossary-item"><span class="glossary-term">tool field</span><span class="glossary-def">Поле в Supabase (таблиця user_state) яке фіксує де зараз знаходиться юзер: fallback, osiris, channel_analysis, competitor_analysis і т.д.</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     CTA
+═══════════════════════════════════════ -->
+<section id="cta">
+  <div class="container" style="text-align:center;">
+    <div class="sec-label reveal" style="justify-content:center;">Контакт</div>
+    <h2 class="cta-title reveal">
+      Якщо впізнав себе<br>в цій <em>задачі</em>
+    </h2>
+    <p class="cta-sub reveal">Я — AI-архітектор. Будую платформи та системи автоматизації для підприємців, продюсерів і фаундерів яким потрібен масштаб без пропорційного зростання команди.</p>
+    <div class="reveal">
+      <a href="https://t.me/bohdanhodliuk" class="cta-btn cta-btn-primary" target="_blank">
+        ✈ Написати в Telegram
+      </a>
+      <a href="https://gotrends.io" class="cta-btn cta-btn-secondary" target="_blank">
+        Відкрити GoTrends →
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer>
+  <div class="footer-author">
+    <div class="footer-photo-placeholder">👤</div>
+    <div>
+      <div class="footer-name">Богдан Годлюк</div>
+      <div class="footer-title">AI Architect · CEO GoTrends</div>
+    </div>
+  </div>
+  <div class="footer-socials">
+    <a href="https://youtube.com/@bohdanhodliuk" class="footer-social-link" target="_blank">YouTube</a>
+    <a href="https://t.me/bohdanhodliuk"          class="footer-social-link" target="_blank">Telegram</a>
+    <a href="https://instagram.com/bohdanhodliuk" class="footer-social-link" target="_blank">Instagram</a>
+  </div>
+  <div class="footer-year">© 2026 · GoTrends</div>
+</footer>
+
+<script>
+document.getElementById('photoBase').style.backgroundImage="url('https://raw.githubusercontent.com/bogdangodluk22-art/my_cases/main/photo-base.png')";
+document.getElementById('photoReveal').style.backgroundImage="url('https://raw.githubusercontent.com/bogdangodluk22-art/my_cases/main/photo-reveal.png')";
+</script>
+
+<script>
+// ══ CURSORS ══
+const dot  = document.getElementById('cursor-dot');
+const ring = document.getElementById('cursor-ring');
+let mx=0,my=0,dx=0,dy=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;});
+(function loop(){
+  dx+=(mx-dx)*.14; dy+=(my-dy)*.14;
+  rx+=(mx-rx)*.08; ry+=(my-ry)*.08;
+  dot.style.left=dx+'px';  dot.style.top=dy+'px';
+  ring.style.left=rx+'px'; ring.style.top=ry+'px';
+  requestAnimationFrame(loop);
+})();
+
+// ══ HERO BLOB REVEAL ══
+const hero    = document.getElementById('hero');
+const reveal  = document.getElementById('photoReveal');
+const grid    = document.getElementById('heroGrid');
+const invEls  = ['nl1','nl2','hn1','hn2','hn3','hn4','bt','tl','sl1','sl2','sl3'].map(id=>document.getElementById(id));
+
+let hx=0,hy=0,br=0,tr=0,isHero=false,px=0,py=0,lastEcho=0;
+
+document.addEventListener('mousemove',e=>{
+  const r=hero.getBoundingClientRect();
+  isHero=(e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom);
+  hx=e.clientX; hy=e.clientY;
+  if(isHero){
+    tr=160;
+    const spd=Math.hypot(e.clientX-px,e.clientY-py);
+    const now=Date.now();
+    if(spd>14&&now-lastEcho>55){spawnEcho(e.clientX,e.clientY,spd);lastEcho=now;}
+    px=e.clientX;py=e.clientY;
+  } else { tr=0; }
+});
+
+hero.addEventListener('mouseleave',()=>{
+  tr=0;isHero=false;
+  invEls.forEach(el=>el&&el.classList.remove('inv'));
+  grid.style.transform='translate(0,0)';
+});
+
+(function heroLoop(){
+  br+=(tr-br)*.08;
+  if(isHero){
+    const r=hero.getBoundingClientRect();
+    const lx=hx-r.left, ly=hy-r.top;
+    const rad=Math.round(br);
+    const m=`radial-gradient(circle ${rad}px at ${lx}px ${ly}px, black 0%, black 55%, transparent 100%)`;
+    reveal.style.webkitMaskImage=m; reveal.style.maskImage=m;
+    const gx=(lx/r.width-.5)*18, gy=(ly/r.height-.5)*18;
+    grid.style.transform=`translate(${gx}px,${gy}px)`;
+    invEls.forEach(el=>{
+      if(!el)return;
+      const er=el.getBoundingClientRect();
+      const cx=er.left+er.width/2, cy=er.top+er.height/2;
+      const dist=Math.hypot(hx-cx,hy-cy);
+      dist<br*.72?el.classList.add('inv'):el.classList.remove('inv');
+    });
+  }
+  requestAnimationFrame(heroLoop);
+})();
+
+function spawnEcho(x,y,spd){
+  const e=document.createElement('div'); e.className='echo';
+  const s=Math.min(spd*1.4,90);
+  e.style.cssText=`width:${s}px;height:${s}px;left:${x}px;top:${y}px;`;
+  document.body.appendChild(e);
+  setTimeout(()=>e.remove(),700);
+}
+
+// ══ SCROLL REVEAL ══
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');});
+},{threshold:.12,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.reveal,.reveal-left,.reveal-right').forEach(el=>obs.observe(el));
+
+// ══ COUNT-UP ══
+function countUp(el,target,dur=1600){
+  let start=null;
+  function step(ts){
+    if(!start)start=ts;
+    const p=Math.min((ts-start)/dur,1);
+    el.textContent=Math.round(p*target);
+    if(p<1)requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+const cObs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      const t=parseInt(e.target.dataset.count||0);
+      countUp(e.target,t);
+      cObs.unobserve(e.target);
+    }
+  });
+},{threshold:.5});
+document.querySelectorAll('[data-count]').forEach(el=>cObs.observe(el));
+
+// ══ PROGRESS BARS ══
+const pObs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      const w=e.target.dataset.width;
+      e.target.style.width=w+'%';
+      pObs.unobserve(e.target);
+    }
+  });
+},{threshold:.3});
+document.querySelectorAll('.progress-fill').forEach(el=>pObs.observe(el));
+
+// ══ GLOSSARY ══
+const gh=document.getElementById('glossaryHeader');
+const gb=document.getElementById('glossaryBody');
+if(gh&&gb){
+  gh.addEventListener('click',()=>{
+    gh.classList.toggle('open');
+    gb.classList.toggle('open');
+  });
+}
+
+// ══ ACTIVE NAV ══
+const sections=document.querySelectorAll('section[id],div[id]');
+const navLinks=document.querySelectorAll('.nav-item');
+window.addEventListener('scroll',()=>{
+  let cur='';
+  sections.forEach(s=>{
+    if(window.scrollY>=s.offsetTop-120)cur=s.id;
+  });
+  navLinks.forEach(a=>{
+    a.classList.toggle('active',a.getAttribute('href')==='#'+cur);
+  });
+},{passive:true});
+
+// ══ NAV STRIP — pause on hover ══
+const ns=document.getElementById('nav-strip');
+if(ns){
+  ns.addEventListener('mouseenter',()=>ns.querySelector('.nav-strip-inner').style.animationPlayState='paused');
+  ns.addEventListener('mouseleave',()=>ns.querySelector('.nav-strip-inner').style.animationPlayState='running');
+}
+</script>
+
+</body>
+</html>
