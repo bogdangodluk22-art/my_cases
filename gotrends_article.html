@@ -127,7 +127,29 @@ body:has(a:hover) #cursor-ring { width:52px; height:52px; opacity:.5; }
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  background: #f0ede8;
+  background: #f0ede8 url('https://raw.githubusercontent.com/bogdangodluk22-art/my_cases/main/hero-bg.jpg') center center / cover no-repeat;
+}
+#hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1;
+}
+#hero::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 400px;
+  height: 600px;
+  background: radial-gradient(ellipse, rgba(200,169,110,0.25) 0%, transparent 70%);
+  z-index: 1;
+  pointer-events: none;
+}
+#hero > * {
+  z-index: 2;
 }
 .hero-grid {
   position: absolute; inset: 0;
@@ -157,18 +179,29 @@ body:has(a:hover) #cursor-ring { width:52px; height:52px; opacity:.5; }
   background: radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.22) 100%);
   pointer-events: none;
 }
+.hero-subtitle {
+  font-family: var(--mono);
+  font-size: 21px;
+  letter-spacing: .15em;
+  color: #c8a96e;
+  text-transform: uppercase;
+  display: block;
+  margin-top: -4px;
+  text-align: right;
+}
 .hero-name {
   position: absolute; top: 52px; left: 60px; z-index: 100;
 }
 .hero-name-line {
-  font-family: var(--serif);
-  font-size: clamp(30px, 4vw, 56px);
-  font-weight: 700;
-  line-height: 1.02;
-  color: #111;
-  letter-spacing: -0.01em;
+  font-family: var(--display);
+  font-size: clamp(40px, 6vw, 80px);
+  font-weight: 400;
+  line-height: 1.0;
+  color: #ffffff;
+  letter-spacing: 0.05em;
   display: block;
   transition: color 0.3s ease;
+  text-shadow: 0 0 40px rgba(200,169,110,0.3), 0 4px 20px rgba(0,0,0,0.8);
 }
 .hero-name-line.inv { color: #fff; }
 
@@ -178,11 +211,11 @@ body:has(a:hover) #cursor-ring { width:52px; height:52px; opacity:.5; }
 }
 .hero-nav a {
   font-family: var(--mono);
-  font-size: 10px; letter-spacing: .15em; color: #555;
+  font-size: 10px; letter-spacing: .15em; color: rgba(255,255,255,0.6);
   text-decoration: none; text-transform: uppercase;
   transition: color .25s;
 }
-.hero-nav a:hover { color: #111; }
+.hero-nav a:hover { color: #c8a96e; }
 .hero-nav a.inv { color: #fff !important; }
 
 .hero-badge {
@@ -191,25 +224,25 @@ body:has(a:hover) #cursor-ring { width:52px; height:52px; opacity:.5; }
   display: flex; align-items: center; gap: 8px;
 }
 .badge-dot { width:6px; height:6px; border-radius:50%; background:var(--green); animation:pulse 2.5s infinite; }
-.badge-text { font-family:var(--mono); font-size:10px; letter-spacing:.14em; color:#555; text-transform:uppercase; transition:color .3s; }
+.badge-text { font-family:var(--mono); font-size:10px; letter-spacing:.14em; color: rgba(255,255,255,0.6); text-transform:uppercase; transition:color .3s; }
 .badge-text.inv { color:#fff; }
 
 .hero-tagline {
   position: absolute; bottom: 52px; left: 60px; z-index: 100;
 }
 .hero-tagline span {
-  font-family: var(--mono); font-size:10px; letter-spacing:.2em; color:#888; text-transform:uppercase; transition:color .3s;
+  font-family: var(--mono); font-size:10px; letter-spacing:.2em; color: rgba(255,255,255,0.45); text-transform:uppercase; transition:color .3s;
 }
 .hero-tagline span.inv { color:rgba(255,255,255,.6); }
 
 .hero-socials {
-  position: absolute; bottom: 44px; right: 60px; z-index:100;
+  position: absolute; bottom: 90px; right: 60px; z-index:100;
   display:flex; flex-direction:column; gap:13px; align-items:flex-end;
 }
 .social-link { display:flex; align-items:center; gap:10px; text-decoration:none; transition:opacity .3s; }
 .social-link:hover { opacity:.7; }
-.social-label { font-family:var(--mono); font-size:10px; letter-spacing:.12em; color:#555; text-transform:uppercase; transition:color .3s; }
-.social-icon  { width:18px; height:18px; fill:#333; transition:fill .3s; flex-shrink:0; }
+.social-label { font-family:var(--mono); font-size:10px; letter-spacing:.12em; color: rgba(255,255,255,0.6); text-transform:uppercase; transition:color .3s; }
+.social-icon  { width:18px; height:18px; fill: rgba(255,255,255,0.6); transition:fill .3s; flex-shrink:0; }
 .social-link.inv .social-label { color:#fff; }
 .social-link.inv .social-icon  { fill:#fff; }
 
@@ -219,10 +252,10 @@ body:has(a:hover) #cursor-ring { width:52px; height:52px; opacity:.5; }
 }
 .scroll-line {
   width:1px; height:44px;
-  background:linear-gradient(to bottom, transparent, #aaa);
+  background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.4));
   animation: scrollHint 2s ease-in-out infinite;
 }
-.scroll-text { font-family:var(--mono); font-size:9px; letter-spacing:.18em; color:#aaa; text-transform:uppercase; margin-top:4px; }
+.scroll-text { font-family:var(--mono); font-size:9px; letter-spacing:.18em; color: rgba(255,255,255,0.4); text-transform:uppercase; margin-top:4px; }
 
 .echo {
   position:fixed; border-radius:50%; pointer-events:none; z-index:9990;
@@ -607,7 +640,7 @@ body:has(a:hover) #cursor-ring { width:52px; height:52px; opacity:.5; }
 }
 .osiris-emoji { font-size: 100px; filter: drop-shadow(0 0 40px rgba(200,169,110,.4)); }
 .osiris-online {
-  position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+  position: absolute; bottom: -50px; left: 50%; transform: translateX(-50%);
   font-family: var(--mono); font-size: 10px; letter-spacing: .2em;
   color: var(--green); display: flex; align-items: center; gap: 6px;
   white-space: nowrap;
@@ -663,12 +696,23 @@ body:has(a:hover) #cursor-ring { width:52px; height:52px; opacity:.5; }
   background: var(--accent); color: #09090b;
 }
 .cta-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(200,169,110,.35); }
+
 .cta-btn-secondary {
-  background: transparent; color: var(--text);
-  border: 1px solid var(--border);
-  margin-left: 12px;
+  background: #2a2a3a; color: var(--text);
+  border: 1px solid rgba(255,255,255,0.15);
+  margin-left: 0;
 }
 .cta-btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+.cta-btn-youtube {
+  background: #ff0000;
+  color: #fff;
+  border: none;
+}
+.cta-btn-youtube:hover {
+  background: #cc0000;
+  transform: translateY(-2px);
+}
 
 /* ════════════════════════════════════════
    FOOTER
@@ -693,7 +737,7 @@ footer {
 }
 .footer-name { font-size: 15px; font-weight: 700; color: var(--text); }
 .footer-title { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; color: var(--muted); text-transform: uppercase; margin-top: 2px; }
-.footer-socials { display: flex; gap: 16px; align-items: center; }
+.footer-socials { display: flex; gap: 16px; align-items: center; justify-content: center; }
 .footer-social-link { color: var(--muted); text-decoration: none; transition: color .2s; font-size: 13px; font-family: var(--mono); letter-spacing: .06em; }
 .footer-social-link:hover { color: var(--accent); }
 .footer-year { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: .1em; }
@@ -812,9 +856,9 @@ footer {
   <div class="vignette"></div>
 
   <div class="hero-name fade-in d1" id="heroName">
-    <span class="hero-name-line" id="nl1">БОГДАН</span>
-    <span class="hero-name-line" id="nl2">ГОДЛЮК</span>
-  </div>
+  <span class="hero-name-line" id="nl1">GO TRENDS</span>
+  <span class="hero-subtitle">Богдан Годлюк</span>
+</div>
 
   <nav class="hero-nav fade-in d2" id="heroNav">
     <a href="#toc"     id="hn1">Зміст</a>
@@ -837,11 +881,11 @@ footer {
       <span class="social-label">Telegram</span>
       <svg class="social-icon" viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-1.97 9.289c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.932z"/></svg>
     </a>
-    <a href="https://youtube.com/@bohdanhodliuk" class="social-link" id="sl2" target="_blank">
+    <a href="https://www.youtube.com/@bohdan.hodliuk" class="social-link" id="sl2" target="_blank">
       <span class="social-label">YouTube</span>
       <svg class="social-icon" viewBox="0 0 24 24"><path d="M23.495 6.205a3.007 3.007 0 0 0-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 0 0 .527 6.205a31.247 31.247 0 0 0-.522 5.805 31.247 31.247 0 0 0 .522 5.783 3.007 3.007 0 0 0 2.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 0 0 2.088-2.088 31.247 31.247 0 0 0 .5-5.783 31.247 31.247 0 0 0-.5-5.805zM9.609 15.601V8.408l6.264 3.602z"/></svg>
     </a>
-    <a href="https://instagram.com/bohdanhodliuk" class="social-link" id="sl3" target="_blank">
+    <a href="https://www.instagram.com/bohdan_new" class="social-link" id="sl3" target="_blank">
       <span class="social-label">Instagram</span>
       <svg class="social-icon" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>
     </a>
@@ -1226,9 +1270,9 @@ footer {
   <div class="container">
     <div class="osiris-inner">
       <div class="osiris-3d-wrap reveal-left">
-        <div class="osiris-canvas-placeholder">
-          <span class="osiris-emoji">🤖</span>
-        </div>
+        <div style="width:380px;height:520px;position:relative;flex-shrink:0;">
+  <iframe src="https://agent.srv1421181.hstgr.cloud/osiris-spin.html" style="width:380px;height:520px;border:none;background:transparent;" scrolling="no"></iframe>
+</div>
         <div class="osiris-online">
           <div class="osiris-online-dot"></div>
           OSIRIS · ONLINE
@@ -1500,7 +1544,10 @@ footer {
       Якщо впізнав себе<br>в цій <em>задачі</em>
     </h2>
     <p class="cta-sub reveal">Я — AI-архітектор. Будую платформи та системи автоматизації для підприємців, продюсерів і фаундерів яким потрібен масштаб без пропорційного зростання команди.</p>
-    <div class="reveal">
+    <div class="reveal" style="display:flex; justify-content:center; align-items:center; gap:16px; flex-wrap:wrap;">
+      <a href="https://youtube.com/@bohdanhodliuk" class="cta-btn cta-btn-youtube" target="_blank">
+        ▶ Дивитися відео
+      </a>
       <a href="https://t.me/bohdanhodliuk" class="cta-btn cta-btn-primary" target="_blank">
         ✈ Написати в Telegram
       </a>
@@ -1514,16 +1561,16 @@ footer {
 <!-- ═══ FOOTER ═══ -->
 <footer>
   <div class="footer-author">
-    <div class="footer-photo-placeholder">👤</div>
+    <img src="https://raw.githubusercontent.com/bogdangodluk22-art/my_cases/main/Bohdan.jpg" class="footer-photo-placeholder" style="object-fit:cover;border-radius:50%;">
     <div>
       <div class="footer-name">Богдан Годлюк</div>
       <div class="footer-title">AI Architect · CEO GoTrends</div>
     </div>
   </div>
   <div class="footer-socials">
-    <a href="https://youtube.com/@bohdanhodliuk" class="footer-social-link" target="_blank">YouTube</a>
+    <a href="https://www.youtube.com/@bohdan.hodliuk" class="footer-social-link" target="_blank">YouTube</a>
     <a href="https://t.me/bohdanhodliuk"          class="footer-social-link" target="_blank">Telegram</a>
-    <a href="https://instagram.com/bohdanhodliuk" class="footer-social-link" target="_blank">Instagram</a>
+    <a href="https://www.instagram.com/bohdan_new" class="footer-social-link" target="_blank">Instagram</a>
   </div>
   <div class="footer-year">© 2026 · GoTrends</div>
 </footer>
